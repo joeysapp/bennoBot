@@ -20,6 +20,7 @@ const bennoBot = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildMessageReactions, // _ADD, _REMOVE, _REMOVE_ALL, _REMOVE_EMOJI
     GatewayIntentBits.GuildMessageTyping, // TYPING_START
     GatewayIntentBits.DirectMessages,
@@ -33,8 +34,41 @@ bennoBot.once(Events.ClientReady, function(currentClient) {
   console.log(`Events.ClientReady: ${currentClient.user.tag} is now listening for interactions`);
 });
 
+// https://discord.com/developers/docs/topics/gateway#presence-update
+// https://old.discordjs.dev/#/docs/discord.js/14.9.0/class/Client?scrollTo=e-presenceUpdate
 bennoBot.on(Events.PresenceUpdate, async function(oldPres, newPres) {
-  console.log('Events.PresenceUpdate', oldPres, newPres);
+  // note(@joeysapp): I think we need to establish a wss connection for this lol
+  console.log(`Events.PresenceUpdate({...})`);
+
+  const { userId: userID } = oldPres || newPres;
+  let { status: oldStatus, activities: oldActivities, clientStatus: oldClientStatus } = oldPres;
+  let { status: newStatus, activities: newActivities, clientStatus: newClientStatus } = newPres;
+  console.log(` - [userID: ${userID}]`);
+  
+  if (oldActivities.length) {
+    const { name, details, state } = oldActivities[0];
+    oldActivities = `name=${name} - details=${details}, state=${state}`;
+  }
+  if (newActivities.length) {
+    const { name, details, state } = newActivities[0];
+    newActivities = `name=${name} - details=${details}, state=${state}`;
+  }
+  oldClientStatusString = '';
+  Object.keys(oldClientStatus).forEach(function(k) {
+    oldClientStatusString += `${k}: ${oldClientStatus[k]}`;
+  });
+  newClientStatusString = '';
+  Object.keys(newClientStatus).forEach(function(k) {
+    newClientStatusString += `${k}: ${newClientStatus[k]}`;
+  });
+
+  console.log(` - ${oldStatus} ${oldActivities} ${oldClientStatusString}`);
+  console.log(` > ${newStatus} ${newActivities} ${newClientStatusString}`);
+
+});
+
+bennoBot.on(Events.GuildMemberUpdate, async function(oldMember, newMember) {
+  console.log('Events.GuildMemberUpdate', oldMember, newMember);
 });
 
 bennoBot.on(Events.MessageUpdate, async function(oldMsg, newMsg) {
@@ -86,7 +120,13 @@ bennoBot.on(Events.InteractionCreate, async function(interaction) {
     if (sides > 1000) {
       wasDeferred = true;
       await interaction.deferReply({ ephemeral: false });
+      // await sleep(1000);
+    } else if (sides <= 0) {
+      wasDeferred = true;
+      await interaction.deferReply({ ephemeral: false });
       await sleep(1000);
+      await interaction.editReply(`Okay, dude, a die with ${sides} sides isn't possible. Are you high?`);
+      return;
     }
     genSeed(seed || (new Date()).getTime());
     const result = (genI32()) % sides;
