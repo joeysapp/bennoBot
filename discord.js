@@ -1,4 +1,17 @@
+// todo(@joeysapp):
+//    -> what do I want this thing to even do lol
+//       e.g. fun stuff vs huge overbuilt/engineering thing.
+// ## Review Site/PG structure for best practices (e.g. classes, etc.)
+// - Function wrappers for Users, Presences, Events, Interactions 
+//   - Comparison, printing, etc.
+// - Store necessary information (PG?)
+// NOTE: toString of a lot of things hide certain fields.
+// Check here: https://old.discordjs.dev/#/docs/discord.js/14.9.0/class/User
 
+//  _______ __   __ __
+// |   |   |  |_|__|  |
+// |   |   |   _|  |  |
+// |_______|____|__|__|
 function Message(message) { }
 function Interaction(interaction) { }
 function Guild(guild) { }
@@ -16,19 +29,24 @@ function User(user) {
   }
 }
 
+
+
 // Helpful links:
 // https://discordjs.guide/
 // https://old.discordjs.dev/#/docs/discord.js/14.9.0/
 // https://discord.com/developers/applications/
 
-const { clientSecret, applicationID } = require('./env.json');
+const { clientSecret, applicationID } = require('./env.json'); // Env vars instead
+
 const sleep = require('node:timers/promises').setTimeout;
+const { numToStr } = require('./utils/fmt.js');
 const { genSeed, genI32 } = require('./lib/twister.js'); // Pseudo RNG for /roll
 
 // Bot 'client' creation
 const {
   Client,
   Events,
+  Users,
   GatewayIntentBits,
   Collection,
   SlashCommandBuilder,
@@ -38,6 +56,7 @@ const bennoBot = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildMessageReactions, // _ADD, _REMOVE, _REMOVE_ALL, _REMOVE_EMOJI
     GatewayIntentBits.GuildMessageTyping, // TYPING_START
@@ -50,40 +69,45 @@ const bennoBot = new Client({
 
 bennoBot.once(Events.ClientReady, function(currentClient) {
   console.log(`Events.ClientReady: ${currentClient.user.tag} is now listening for interactions`);
+  genSeed(new Date().getTime());
 });
 
 // https://discord.com/developers/docs/topics/gateway#presence-update
 // https://old.discordjs.dev/#/docs/discord.js/14.9.0/class/Client?scrollTo=e-presenceUpdate
 bennoBot.on(Events.PresenceUpdate, async function(oldPres, newPres) {
   // note(@joeysapp): I think we need to establish a wss connection for this? or not?
-  console.log(`Events.PresenceUpdate({...})`);
 
   // Messy, just figuring stuff out atm
   const { userId: userID } = oldPres || newPres;
-  let { status: oldStatus, activities: oldActivities, clientStatus: oldClientStatus } = oldPres;
-  let { status: newStatus, activities: newActivities, clientStatus: newClientStatus } = newPres;
-  console.log(` - [userID: ${userID}]`);
+  let { status: oldStatus, activities: oldActivities, clientStatus: oldClientStatus } = oldPres || {};
+  let { status: newStatus, activities: newActivities, clientStatus: newClientStatus } = newPres || {};
+  console.log(`Events.PresenceUpdate({ userID: ${userID} })`);
   
-  if (oldActivities.length) {
+  if (oldActivities && oldActivities.length) {
     const { name, details, state } = oldActivities[0];
-    oldActivities = `name=${name} - details=${details}, state=${state}`;
+    oldActivities = `[${name}] ${details} - ${state}`;
   }
-  if (newActivities.length) {
+  if (newActivities && newActivities.length) {
     const { name, details, state } = newActivities[0];
-    newActivities = `name=${name} - details=${details}, state=${state}`;
+    newActivities = `[${name}] ${details} - ${state}`;
   }
   oldClientStatusString = '';
-  Object.keys(oldClientStatus).forEach(function(k) {
-    oldClientStatusString += `${k}: ${oldClientStatus[k]}`;
+  Object.keys(oldClientStatus || {}).sort().forEach(function(k, idx) {
+    oldClientStatusString += `${idx > 0 ? ', ' : ''}${k}: ${oldClientStatus[k]}`;
   });
   newClientStatusString = '';
-  Object.keys(newClientStatus).forEach(function(k) {
-    newClientStatusString += `${k}: ${newClientStatus[k]}`;
+  Object.keys(newClientStatus || {}).sort().forEach(function(k, idx) {
+    newClientStatusString += `${idx > 0 ? ', ' : ''}${k}: ${newClientStatus[k]}`;
   });
 
-  console.log(` - ${oldStatus} ${oldActivities} ${oldClientStatusString}`);
-  console.log(` > ${newStatus} ${newActivities} ${newClientStatusString}`);
-
+  if (oldClientStatusString !== newClientStatusString) {
+    console.log(` - ${oldClientStatusString}`);
+    console.log(` > ${newClientStatusString}`);
+  }
+  if ((oldActivities && oldActivities.length || newActivities && newActivities.length) && (oldActivities !== newActivities)) {
+    console.log(` - ${oldActivities}`);
+    console.log(` > ${newActivities}`);
+  }
 });
 
 bennoBot.on(Events.GuildMemberUpdate, async function(oldMember, newMember) {
@@ -152,11 +176,45 @@ bennoBot.on(Events.InteractionCreate, async function(interaction) {
     // |_     _|.-----.'  _|.-----.
     //  _|   |_ |     |   _||  _  |
     // |_______||__|__|__|  |_____|
-    const accountCreatedAt = new Date(interaction.member.joinedTimestamp); 
-    let accountAge = (new Date() - accountCreatedAt) / (1000 * 60 * 60 * 24); // milliseconds to days
-    accountAge = Math.round(accountAge * 100) / 100; // Give us two significant digits
+    let unit = 'day';
+    if (genI32() % 2 === 0) {
+      unit = 'year';
+    }
+    let rareString = '';
+    if (genI32() % 100 < 15) {
+      rareString = 'You really are a pal! ';
+    }
+    if (rareString && genI32() % 100 < 49) {
+      rareString = 'I love hearing from you! ';
+    }
+    const accountCreatedAt = new Date(interaction.user.createdTimestamp);
+    let accountAge = (new Date() - accountCreatedAt) / (1000 * 60 * 60 * 24 * (unit === 'year' ? 365 : 1));
+    const guildJoinedAt = new Date(interaction.member.joinedTimestamp); 
+    let guildTenure = (new Date() - guildJoinedAt) / (1000 * 60 * 60 * 24 * (unit === 'year' ? 365 : 1)); // milliseconds to days
 
-    responses.push(`Please stop bothering me, ${interaction.user.username}. You've only been using Discord for ${accountAge} days.`);
+    let percentageInGuild = guildTenure/accountAge;
+
+    // Give us two significant digits
+    percentageInGuild = Math.round(percentageInGuild * 10000) / 100;
+    accountAge = Math.round(accountAge * 100) / 100;
+    guildTenure = Math.round(guildTenure * 100) / 100;
+
+    if (accountAge > 1000) accountAge = Math.round(accountAge);
+    if (guildTenure > 1000) guildTenure = Math.round(guildTenure);
+
+    let msg = '';
+    if (guildTenure < accountAge * 0.25) {
+      if (rareString) rareString = `I'll ask Yuan to take care of you. `;
+      msg += `Please stop bothering me, ${interaction.user.username}. ${rareString}`;
+      msg += `Your account is ${numToStr(accountAge)} ${unit}s old and you've only been here ${numToStr(guildTenure)} ${unit}s. `;
+      msg += `That means you've been here only ${percentageInGuild}% of your time on Discord. Please work on your ratio.`;
+    } else {
+      msg += `Wow, ${interaction.user.username}, it's great to see you. ${rareString}`;
+      msg += `Your account is ${numToStr(accountAge)} ${unit}s old and you've been with us for ${numToStr(guildTenure)} ${unit}s! `;
+      msg += `You've been with us for ${percentageInGuild}% of your time on Discord.`;
+    }
+    responses.push(msg);
+    // responses.push(`Please stop bothering me, ${interaction.user.username}. You've only been in this Discord for ${guildTenure} days.`);
   }
 
   let idx = 0;
