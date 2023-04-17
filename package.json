@@ -1,0 +1,10 @@
+{
+  "name": "bennoBot",
+  "version": "0.1.7",
+  "description": "A Discord bot playground",
+  "author": "joeysapp",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.9.0"
+  }
+}
