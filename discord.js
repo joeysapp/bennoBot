@@ -1,3 +1,21 @@
+
+function Message(message) { }
+function Interaction(interaction) { }
+function Guild(guild) { }
+function Presence(presence) { }
+function Activity(activity) { }
+function User(user) {
+  this.userID = null;
+
+  function constructor(user) {
+    // lol { this } = ...user;
+  }
+
+  function toString() {
+    /* Library for indent/pretty printing */
+  }
+}
+
 // Helpful links:
 // https://discordjs.guide/
 // https://old.discordjs.dev/#/docs/discord.js/14.9.0/
@@ -37,9 +55,10 @@ bennoBot.once(Events.ClientReady, function(currentClient) {
 // https://discord.com/developers/docs/topics/gateway#presence-update
 // https://old.discordjs.dev/#/docs/discord.js/14.9.0/class/Client?scrollTo=e-presenceUpdate
 bennoBot.on(Events.PresenceUpdate, async function(oldPres, newPres) {
-  // note(@joeysapp): I think we need to establish a wss connection for this lol
+  // note(@joeysapp): I think we need to establish a wss connection for this? or not?
   console.log(`Events.PresenceUpdate({...})`);
 
+  // Messy, just figuring stuff out atm
   const { userId: userID } = oldPres || newPres;
   let { status: oldStatus, activities: oldActivities, clientStatus: oldClientStatus } = oldPres;
   let { status: newStatus, activities: newActivities, clientStatus: newClientStatus } = newPres;
@@ -117,11 +136,7 @@ bennoBot.on(Events.InteractionCreate, async function(interaction) {
     // |___|__||_____||__|__|
     const sides = interaction.options.getInteger('sides');
     const seed = interaction.options.getInteger('seed');
-    if (sides > 1000) {
-      wasDeferred = true;
-      await interaction.deferReply({ ephemeral: false });
-      // await sleep(1000);
-    } else if (sides <= 0) {
+    if (sides <= 0) {
       wasDeferred = true;
       await interaction.deferReply({ ephemeral: false });
       await sleep(1000);
@@ -141,10 +156,12 @@ bennoBot.on(Events.InteractionCreate, async function(interaction) {
     let accountAge = (new Date() - accountCreatedAt) / (1000 * 60 * 60 * 24); // milliseconds to days
     accountAge = Math.round(accountAge * 100) / 100; // Give us two significant digits
 
-    responses.push(`Please stop bothering me, ${interaction.user.username}.\nYou've only been using Discord for ${accountAge} days.`);
+    responses.push(`Please stop bothering me, ${interaction.user.username}. You've only been using Discord for ${accountAge} days.`);
   }
 
   let idx = 0;
+  // note(@joeysapp): I think the editReply/defer stuff should only be used for actual network requests,
+  //  - same with interaction.followUp
   if (wasDeferred) {
     await interaction.editReply(responses[idx])
       .then(function(resInt) {
