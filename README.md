@@ -10,8 +10,11 @@ A lightweight Discord bot using the [Discord API v14.x.x](https://discord.js.org
     - `DiscordObject.toString()` often does not show everything.
 
 ## Roadmap
+- *Better project organization*
+- *Submodule attempt #352*
 - Simple Markov-based text generation
   - Corpus is what exactly?
+
 - Super simple poll creation/usage/deletion/history
 - Games
   - Mafia (Very simple, roles and day/night cycles?)
@@ -41,8 +44,19 @@ A lightweight Discord bot using the [Discord API v14.x.x](https://discord.js.org
 
 
 ## Dependencies
-- [npm/discord.js](https://github.com/discordjs/discord.js)
-- [npm/markov-chain](https://github.com/bdchauvette/markov-chains)
+- **js/discord.js** - Primary API used to run bennoBot
+  - [github.com/discordjs/discord.js](https://github.com/discordjs/discord.js)
+  - [npmjs.com/package/discord.js](https://www.npmjs.com/package/discord.js)
+  - Added at 2023-04-16
+- **js/markov-chain**
+  - [github.com/bdchauvette/markov-chains](https://github.com/bdchauvette/markov-chains)
+  - [npmjs.com/package/markov-chains](https://www.npmjs.com/package/markov-chains)
+  - Added at 2023-04-21
+- **js/dotenv** - Ease of life library to load in environment variables
+  - [github.com/motdotla/dotenv](https://github.com/motdotla/dotenv)
+  - [npmjs.com/package/dotenv](https://www.npmjs.com/package/dotenv)
+  - Added at 2023-04-21
+  
 
 ## Documentation
 * https://discordjs.guide/

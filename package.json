@@ -1,12 +1,13 @@
 {
   "name": "bennoBot",
-  "version": "0.2.0b",
+  "version": "0.2.0c",
   "description": "bennoBot is a manifestation of pure joy.",
   "author": "joeysapp",
   "type": "module",
   "license": "MIT",
   "dependencies": {
     "discord.js": "^14.9.0",
+    "dotenv": "^16.0.3",
     "markov-chains": "^1.0.2"
   }
 }

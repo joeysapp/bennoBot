@@ -14,10 +14,6 @@ DiscordStatus.prototype.toString = function foobar() {
 }
 
 import { numToStr } from './utils/fmt.js';
-import env from './env.json' assert { type: 'json' };
-const clientSecret = env.clientSecret;
-const applicationID = env.applicationID;
-
 import { genSeed, genI32 } from './src/external/mersenne-twister.js';
 
 import {
@@ -71,19 +67,10 @@ bennoBot.on(Events.InteractionCreate, async function(interaction) {
   console.log(`[${ts.toLocaleTimeString()}] Events.InteractionCreate({ @${username} })`);
   console.log(` + ${cmdString}`);
 
-  let members = interaction.member.guild.members;
-  
+  let members = interaction.member.guild.members;  
   const responses = []; // All sent in sequence for now? vs. just concat?
   let wasDeferred = false; // For future network/db reqs
   let ephemeral = false;
-
-
-  // roll _sides _seed
-  // slap @user
-  // played
-  // weather _zip
-  // activity -> last activity on the server XD
-
   if (interaction.commandName === 'slap') {
     let slapee = interaction.options.getUser('slapee');
     console.log(interaction, members);
@@ -184,7 +171,7 @@ bennoBot.on(Events.InteractionCreate, async function(interaction) {
 // This tells the bot how to interpret any given message (but not "slash commands"!)
 bennoBot.on(Events.MessageCreate, async function(msg) {
   const { createdTimestamp, content, author: { username, id: userID, }, attachments, stickers, mentions } = msg;
-  if (userID === applicationID) return;
+  if (userID === process.env.DISCORD_BENNOBOT_ID) return;
   const ts = new Date(createdTimestamp);
 
   // Did this message contain a User mention, and was it aimed at us?
@@ -237,9 +224,11 @@ bennoBot.on(Events.GuildMemberUpdate, async function(oldMember, newMember) {
   console.log('Events.GuildMemberUpdate', oldMember, newMember);
 });
 
-bennoBot.login(clientSecret);
+import dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
+dotenv.config();
 
 import process from 'node:process'; // https://nodejs.org/api/process.html
+bennoBot.login(process.env.DISCORD_BENNOBOT_SECRET);
 process.once('SIGINT', () => {
   console.log('\n ! process.once(SIGINT)\n -> bennoBot.destroy()');
   bennoBot.destroy();
