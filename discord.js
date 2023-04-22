@@ -1,8 +1,8 @@
-import {
-  SocketConnection,
-  FileCache, Database, Site,
-  http, path
-} from './db-nodemon/library.mjs';
+// import {
+//   SocketConnection,
+//   FileCache, Database, Site,
+//   http, path
+// } from './db-nodemon/library.mjs';
 
 function DiscordStatus(status) {
   // online, away, dnd, (null/undefined/nothing at all)
@@ -13,20 +13,20 @@ DiscordStatus.prototype.toString = function foobar() {
   return `desktop=${this.desktop}\tmobile=${this.mobile}`;
 }
 
-const { numToStr } = require('./utils/fmt.js');
-const { genSeed, genI32 } = require('./lib/twister.js'); // Pseudo RNG for /roll
-const { clientSecret, applicationID } = require('./env.json'); // Env vars instead
+import { numToStr } from './utils/fmt.js';
+import env from './env.json' assert { type: 'json' };
+const clientSecret = env.clientSecret;
+const applicationID = env.applicationID;
 
-// ================================================================================
-// We're initializing our bot here
-const {
+import { genSeed, genI32 } from './src/external/mersenne-twister.js';
+
+import {
   Client,
   Events,
-  Users,
   GatewayIntentBits,
-  Collection,
   SlashCommandBuilder,
-} = require('discord.js');
+} from 'discord.js';
+import { User } from 'discord.js';
 const bennoBot = new Client({
   // https://discord.com/developers/docs/topics/gateway#gateway-intents
   intents: [
@@ -53,10 +53,6 @@ bennoBot.once(Events.ClientReady, function(currentClient) {
   genSeed(new Date().getTime());
 });
 
-
-
-// ================================================================================
-// This handles all "slash commands" to this bot
 bennoBot.on(Events.InteractionCreate, async function(interaction) {
   const {
     commandName,
@@ -184,8 +180,6 @@ bennoBot.on(Events.InteractionCreate, async function(interaction) {
   }
 });
 
-
-
 // ================================================================================
 // This tells the bot how to interpret any given message (but not "slash commands"!)
 bennoBot.on(Events.MessageCreate, async function(msg) {
@@ -208,9 +202,6 @@ bennoBot.on(Events.MessageUpdate, async function(oldMsg, newMsg) {
   console.log(` > "${newContent}"`);
 });
 
-
-// ================================================================================
-// This watches/handles all Server member status/activity updates
 // https://discord.com/developers/docs/topics/gateway#presence-update
 bennoBot.on(Events.PresenceUpdate, async function(oldPres, newPres) {
   const { userId: userID, user: { username } } = oldPres || newPres;
@@ -228,8 +219,8 @@ bennoBot.on(Events.PresenceUpdate, async function(oldPres, newPres) {
     const { name, details, state } = newActivities[0];
     newActivities = `(${name}) ${details} - ${state}`;
   }
-  oldClientStatusString = new Status(oldPres ? oldPres.clientStatus : {});
-  newClientStatusString = new Status(newPres ? newPres.clientStatus : {});
+  let oldClientStatusString = new DiscordStatus(oldPres ? oldPres.clientStatus : {});
+  let newClientStatusString = new DiscordStatus(newPres ? newPres.clientStatus : {});
 
   const whatChanged = oldClientStatusString !== newClientStatusString ? 'Status' : 'Activities';
   console.log(`[${ts.toLocaleTimeString()}] Events.PresenceUpdate({ @${username}.${whatChanged} })`);
@@ -248,8 +239,7 @@ bennoBot.on(Events.GuildMemberUpdate, async function(oldMember, newMember) {
 
 bennoBot.login(clientSecret);
 
-// Handling ctrl-c to log the bot out
-const process = require('process'); // https://nodejs.org/api/process.html
+import process from 'node:process'; // https://nodejs.org/api/process.html
 process.once('SIGINT', () => {
   console.log('\n ! process.once(SIGINT)\n -> bennoBot.destroy()');
   bennoBot.destroy();

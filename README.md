@@ -6,7 +6,8 @@ A lightweight Discord bot using the [Discord API v14.x.x](https://discord.js.org
   - This is a fun project, and not a huge over-engineered headache
 - Technicals
   - Discord
-    - DiscordObject.toString() often does not show everything!
+    - `discord.js` is slated to be deprecated, `@discordjs/core` et. all is the upcoming version.
+    - `DiscordObject.toString()` often does not show everything.
 
 ## Roadmap
 - Simple Markov-based text generation
