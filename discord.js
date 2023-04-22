@@ -1,33 +1,15 @@
-// VERY MESSY RIGHT NOW :^)
-// https://discordjs.guide/
-// https://discord.com/developers/applications/
+import {
+  SocketConnection,
+  FileCache, Database, Site,
+  http, path
+} from './db-nodemon/library.mjs';
 
-// https://old.discordjs.dev/#/docs/discord.js/14.9.0/
-// https://old.discordjs.dev/#/docs/discord.js/14.9.0/class/Activity
-// https://old.discordjs.dev/#/docs/discord.js/14.9.0/class/Presence
-// https://old.discordjs.dev/#/docs/discord.js/14.9.0/class/User
-
-// https://discordjs.guide/popular-topics/faq.html#how-do-i-check-the-bot-s-ping
-
-// todo(@joeysapp):
-//    -> what do I want this thing to even do lol
-//       e.g. fun stuff vs huge overbuilt/engineering thing.
-
-// ## Review Site/PG structure for best practices (e.g. classes, etc.)
-// - Function wrappers for Users, Presences, Events, Interactions 
-//   - Comparison, printing, etc?
-// - Store necessary information (PG?)
-
-// NOTE: toString of a lot of things hide certain fields.
-
-// const sleep = require('node:timers/promises').setTimeout;
-
-function Status(status) {
+function DiscordStatus(status) {
+  // online, away, dnd, (null/undefined/nothing at all)
   this.desktop = status.desktop ? status.desktop : '';
   this.mobile =  status.mobile ? status.mobile : '';
-
 }
-Status.prototype.toString = function foobar() {
+DiscordStatus.prototype.toString = function foobar() {
   return `desktop=${this.desktop}\tmobile=${this.mobile}`;
 }
 
@@ -88,10 +70,12 @@ bennoBot.on(Events.InteractionCreate, async function(interaction) {
     const { name, value, type } = opt;
     cmdString += `${name}=${value} `;
   });
-  const ts = new Date(createdTimestamp);
+  const ts = new Date(createdAt);
 
   console.log(`[${ts.toLocaleTimeString()}] Events.InteractionCreate({ @${username} })`);
   console.log(` + ${cmdString}`);
+
+  let members = interaction.member.guild.members;
   
   const responses = []; // All sent in sequence for now? vs. just concat?
   let wasDeferred = false; // For future network/db reqs
@@ -105,7 +89,21 @@ bennoBot.on(Events.InteractionCreate, async function(interaction) {
   // activity -> last activity on the server XD
 
   if (interaction.commandName === 'slap') {
-    
+    let slapee = interaction.options.getUser('slapee');
+    console.log(interaction, members);
+    if (!slapee) { slapee = interaction.user; }
+
+    let msg = '';
+    let adj = ['wet', 'dry', 'toasty', 'moisty', 'vicious', 'angry', 'enormous', 'itsy-bitsy', 'huge',
+               'cute', 'slimy', 'hurtful', 'boisterous', 'clever', 'spiked'];
+    let n = ['trout', 'pike', 'salmon', 'octopus', 'catfish', 'monkfish', 'baby shark', 'stingray',
+             'shrimp', 'boot'];
+    adj = adj[(genI32() % adj.length)];
+    n = n[(genI32() % n.length)];
+    let foo = 'aeiou'.indexOf(adj[0]) !== -1 ? 'an' : 'a';
+    // msg = `${selfUsername} slapped ${slapee.username} with ${foo} ${adj} ${n}.`;
+    msg = `${interaction.user.username} slapped ${slapee.username} with ${foo} ${adj} ${n}.`;
+    responses.push(msg);
   } else if (interaction.commandName === 'weather') {
 
   } else if (interaction.commandName === 'activity') {
@@ -244,12 +242,9 @@ bennoBot.on(Events.PresenceUpdate, async function(oldPres, newPres) {
   }
 });
 
-
-
-
-
-
-bennoBot.on(Events.GuildMemberUpdate, async function(oldMember, newMember) { console.log('Events.GuildMemberUpdate', oldMember, newMember); });
+bennoBot.on(Events.GuildMemberUpdate, async function(oldMember, newMember) {
+  console.log('Events.GuildMemberUpdate', oldMember, newMember);
+});
 
 bennoBot.login(clientSecret);
 
@@ -258,6 +253,5 @@ const process = require('process'); // https://nodejs.org/api/process.html
 process.once('SIGINT', () => {
   console.log('\n ! process.once(SIGINT)\n -> bennoBot.destroy()');
   bennoBot.destroy();
-  // preventSleep.disable();
   process.exit(0);
 });
